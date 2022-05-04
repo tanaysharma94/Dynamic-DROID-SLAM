@@ -30,24 +30,6 @@ To run the code you will need ...
 
 * **Training:** Training requires a GPU with at least 24G of memory. We train on 4 x RTX-3090 GPUs.
 
-## Getting Started
-1. Clone the repo using the `--recursive` flag
-```Bash
-git clone --recursive https://github.com/princeton-vl/DROID-SLAM.git
-```
-
-2. Creating a new anaconda environment using the provided .yaml file. Use `environment_novis.yaml` to if you do not want to use the visualization
-```Bash
-conda env create -f environment.yaml
-pip install evo --upgrade --no-binary evo
-pip install gdown
-```
-
-3. Compile the extensions (takes about 10 minutes)
-```Bash
-python setup.py install
-```
-
 
 ## Demos
 

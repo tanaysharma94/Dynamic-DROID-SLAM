@@ -10,4 +10,4 @@ echo "Running DROID-SLAM with segmented image)"
 python demo.py --imagedir=$root/$folder/removed --calib=calib/tum3.txt
 
 echo "Running DROID-SLAM with inpainted image)"
-python demo.py --imagedir=$root/$folder/processed --calib=calib/tum3.txt
+python demo.py --imagedir=$root/$folder/processed/masks --calib=calib/tum3.txt

@@ -1,0 +1,6 @@
+[submodule "DynaSLAM"]
+	path = DynaSLAM
+	url = https://github.com/BertaBescos/DynaSLAM.git
+[submodule "ORB_SLAM2"]
+	path = ORB_SLAM2
+	url = https://github.com/raulmur/ORB_SLAM2.git

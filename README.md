@@ -49,7 +49,7 @@ sh run.sh <data_root_for_TUM_dataset> <folder_name_of_the_sequence>
 3. In order to run DROID-SLAM with disparity masking, switch to disparity_mask_droid:
 ```Bash
 git checkout disparity_mask_droid
-//run steps 2 and 3
+#run steps 2 and 3
 ```
 
 ## Acknowledgements

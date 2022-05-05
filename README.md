@@ -46,6 +46,11 @@ sh preprocess.sh <data_root_for_TUM_dataset> <folder_name_of_the_sequence>
 sh run.sh <data_root_for_TUM_dataset> <folder_name_of_the_sequence>
 ```
 
+3. In order to run DROID-SLAM with disparity masking, switch to disparity_mask_droid:
+```Bash
+git checkout disparity_mask_droid
+// run the steps 2 and 3
+```
 
 ## Acknowledgements
 1. We used DROID-SLAM (https://github.com/princeton-vl/DROID-SLAM) as the baseline for many experiments

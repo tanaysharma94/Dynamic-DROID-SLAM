@@ -24,6 +24,13 @@ cd DROID-SLAM
 python setup.py install
 cd ..
 ```
+* Download model for Inpainting
+```Bash
+pip3 install wldhx.yadisk-direct
+curl -L $(yadisk-direct https://disk.yandex.ru/d/ouP6l8VJ0HpMZg) -o big-lama.zip
+unzip big-lama.zip
+mv big-lama lama/
+```
 
 
 ## Demos

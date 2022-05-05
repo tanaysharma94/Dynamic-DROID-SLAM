@@ -8,7 +8,8 @@ from collections import OrderedDict
 
 from droid_net import cvx_upsample
 import geom.projective_ops as pops
-
+import copy
+import cv2
 class DepthVideo:
     def __init__(self, image_size=[480, 640], buffer=1024, stereo=False, device="cuda:0"):
                 
@@ -21,10 +22,13 @@ class DepthVideo:
         ### state attributes ###
         self.tstamp = torch.zeros(buffer, device="cuda", dtype=torch.float).share_memory_()
         self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8)
+        self.masks = torch.zeros(buffer, ht//8, wd//8, device="cuda", dtype=torch.uint8)
         self.dirty = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
         self.red = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
         self.poses = torch.zeros(buffer, 7, device="cuda", dtype=torch.float).share_memory_()
         self.disps = torch.ones(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
+        self.prev_disps = torch.ones(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
+        self.prev_disps_sens = torch.zeros(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
         self.disps_sens = torch.zeros(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
         self.disps_up = torch.zeros(buffer, ht, wd, device="cuda", dtype=torch.float).share_memory_()
         self.intrinsics = torch.zeros(buffer, 4, device="cuda", dtype=torch.float).share_memory_()
@@ -53,6 +57,7 @@ class DepthVideo:
         # self.dirty[index] = True
         self.tstamp[index] = item[0]
         self.images[index] = item[1]
+        
 
         if item[2] is not None:
             self.poses[index] = item[2]
@@ -75,6 +80,9 @@ class DepthVideo:
 
         if len(item) > 8:
             self.inps[index] = item[8]
+
+        if len(item) > 9:
+            self.masks[index] = item[9]
 
     def __setitem__(self, index, item):
         with self.get_lock():
@@ -186,8 +194,37 @@ class DepthVideo:
             # [t0, t1] window of bundle adjustment optimization
             if t1 is None:
                 t1 = max(ii.max().item(), jj.max().item()) + 1
-
+            #print("shbhm", self.disps.shape, self.masks.shape)
+            #self.prev_disps = copy.deepcopy(self.disps)
+            #self.prev_disps_sens = copy.deepcopy(self.disps_sens)
+            #cv2.imwrite("/project_data/ramanan/shubham/shubham_img.jpg", self.images[0][0].detach().cpu().numpy())
+            #cv2.imwrite("/project_data/ramanan/shubham/shubham_mask.jpg", self.masks[0].detach().cpu().numpy())
+            # assert False
+            #print(weight.shape, ii, jj)
+            #m = torch.cat([(self.masks[jj]>0).unsqueeze(1),(self.masks[ii]>0).unsqueeze(1)],dim=1)
+            #print(m.shape)
+            #weight[m] = 0.0001
+            #weight[self.masks[jj]>0,1,:,:] = 0
+            #print(motion_only)
+            #self.disps[self.masks>0] = self.disps[self.masks==0.0].min()
+            #self.disps_sens[self.masks>0] = self.disps_sens[self.masks==0.0].min()
+            
+            self.disps = torch.where(self.masks>0, self.prev_disps, self.disps)
+            self.disps_sens = torch.where(self.masks>0, self.prev_disps_sens, self.disps_sens)
+            
+            #print(self.disps[self.masks==0.0].min())
+            #self.prev_disps = copy.deepcopy(self.disps)
             droid_backends.ba(self.poses, self.disps, self.intrinsics[0], self.disps_sens,
                 target, weight, eta, ii, jj, t0, t1, itrs, lm, ep, motion_only)
-
+            #self.disps = torch.where(self.masks>0, self.prev_disps, self.disps)
             self.disps.clamp_(min=0.001)
+            
+            self.prev_disps = copy.deepcopy(self.disps)
+            self.prev_disps_sens = copy.deepcopy(self.disps_sens)
+            
+            #self.disps[self.masks>0] = self.disps[self.masks>0].min()
+            #self.disps = torch.where(self.masks>0, torch.FloatTensor(0.001), self.disps)
+            #self.disps_sens[self.masks>0] = self.disps_sens[self.masks>0].min()
+            #self.disps_sens = torch.where(self.masks>0, torch.FloatTensor(0.001), self.disps_sens)
+            #cv2.imwrite("/project_data/ramanan/shubham/", self.images[0][0])
+

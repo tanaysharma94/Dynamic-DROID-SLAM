@@ -29,14 +29,26 @@ def image_stream(datapath, image_size=[320, 512]):
     d_l = np.array([0.2624, -0.9531, -0.0054, 0.0026, 1.1633])
 
     # read all png images in folder
-    images_list = sorted(glob.glob(os.path.join(datapath, 'processed', 'masks', '*.png')))[::2]
-    
-    for t, imfile in enumerate(images_list):
+    images_list = sorted(glob.glob(os.path.join(datapath, 'rgb', '*.png')))[::2]
+    masks_list = sorted(glob.glob(os.path.join(datapath, 'masks', '*.png')))[::2]
+    for t, (imfile, maskfile) in enumerate(zip(images_list,masks_list)):
         image = cv2.imread(imfile)
         ht0, wd0, _ = image.shape
         image = cv2.undistort(image, K_l, d_l)
         image = cv2.resize(image, (320+32, 240+16))
+        
+
+        mask = cv2.imread(maskfile,0)
+        kernel = np.ones((5,5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=5)
+        mask = cv2.undistort(mask, K_l, d_l)
+        mask = cv2.resize(mask, (320+32, 240+16))
+        image[mask>0] = 0
         image = torch.from_numpy(image).permute(2,0,1)
+        mask = mask[8:-8, 16:-16]
+        mask = cv2.resize(mask, (40, 30))
+        mask = torch.from_numpy(mask)#.permute(2,0,1)
+        
 
         intrinsics = torch.as_tensor([fx, fy, cx, cy]).cuda()
         intrinsics[0] *= image.shape[2] / 640.0
@@ -49,7 +61,7 @@ def image_stream(datapath, image_size=[320, 512]):
         intrinsics[3] -= 8
         image = image[:, 8:-8, 16:-16]
 
-        yield t, image[None], intrinsics
+        yield t, image[None], mask[None], intrinsics
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -83,10 +95,10 @@ if __name__ == '__main__':
     time.sleep(5)
 
     tstamps = []
-    for (t, image, intrinsics) in tqdm(image_stream(args.datapath)):
+    for (t, image, mask, intrinsics) in tqdm(image_stream(args.datapath)):
         if not args.disable_vis:
             show_image(image)
-        droid.track(t, image, intrinsics=intrinsics)
+        droid.track(t, image, mask, intrinsics=intrinsics)
 
 
     traj_est = droid.terminate(image_stream(args.datapath))
@@ -102,7 +114,7 @@ if __name__ == '__main__':
     import evo.main_ape as main_ape
     from evo.core.metrics import PoseRelation
 
-    image_path = os.path.join(args.datapath, 'processed', 'masks')
+    image_path = os.path.join(args.datapath, 'rgb')
     images_list = sorted(glob.glob(os.path.join(image_path, '*.png')))[::2]
     tstamps = [float(x.split('/')[-1][:-4]) for x in images_list]
 

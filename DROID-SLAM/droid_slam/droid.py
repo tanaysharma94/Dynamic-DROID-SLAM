@@ -58,12 +58,12 @@ class Droid:
         self.net.load_state_dict(state_dict)
         self.net.to("cuda:0").eval()
 
-    def track(self, tstamp, image, depth=None, intrinsics=None):
+    def track(self, tstamp, image, mask=None, depth=None, intrinsics=None):
         """ main thread - update map """
 
         with torch.no_grad():
             # check there is enough motion
-            self.filterx.track(tstamp, image, depth, intrinsics)
+            self.filterx.track(tstamp, image, mask, depth, intrinsics)
 
             # local bundle adjustment
             self.frontend()
